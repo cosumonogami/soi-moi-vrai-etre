@@ -1528,6 +1528,7 @@ function drawGuide(canvas,W,H){
   ctx.textAlign='left';
   ctx.fillText('目',cx-faceW*0.42,eyeY-fs*0.4);
 
+  canvas._g={cx,eyeY,faceW,faceH,faceTopY,W,H};
 }
 
 let photoMoveAbort = null;

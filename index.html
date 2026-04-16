@@ -1,0 +1,1801 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="soi moi vrai être">
+<meta name="theme-color" content="#fdf6ee" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#261e16" media="(prefers-color-scheme: dark)">
+<title>soi. moi. vrai. être.</title>
+<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=M+PLUS+Rounded+1c:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<style>
+:root {
+  --bg:#fdf6ee; --surface:#f5ead8; --surface2:#ecdcc4;
+  --gold:#b8763a; --cream:#5c3d1e; --muted:#a08060;
+  --text:#4a3020; --accent:#c4844a;
+  --border:rgba(184,118,58,0.2); --border-h:rgba(184,118,58,0.45);
+  --glow:rgba(196,132,74,0.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#261e16; --surface:#32271c; --surface2:#3e3022;
+    --gold:#d4a06a; --cream:#f0e0c8; --muted:#907060;
+    --text:#e8d4b8; --accent:#c4844a;
+    --border:rgba(212,160,106,0.18); --border-h:rgba(212,160,106,0.42);
+    --glow:rgba(196,132,74,0.06);
+  }
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+
+/* ===== QUIZ ===== */
+body.phase-quiz {
+  background:var(--bg); color:var(--text);
+  font-family:'M PLUS Rounded 1c',sans-serif; font-weight:300;
+  min-height:100dvh; display:flex; flex-direction:column;
+  align-items:center; padding:24px 20px; overflow-x:hidden;
+}
+body.phase-quiz::before {
+  content:''; position:fixed; inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(196,132,74,0.06) 0%,transparent 60%);
+  pointer-events:none; z-index:0;
+}
+
+/* ===== RESULT ===== */
+body.phase-result {
+  background:var(--bg); color:var(--text);
+  font-family:'M PLUS Rounded 1c',sans-serif; font-weight:300;
+  height:100dvh; overflow:hidden; display:flex; flex-direction:column;
+}
+
+/* 上部固定プレビュー */
+.preview-fixed {
+  flex-shrink:0; background:#000; position:relative;
+}
+.preview-fixed.no-photo {
+  background:var(--surface);
+  display:flex; align-items:center; justify-content:center;
+  min-height:220px; flex-direction:column; gap:8px;
+}
+
+/* アップロードボタン（上部） */
+.upload-area {
+  width:100%; padding:28px 20px; text-align:center; cursor:pointer;
+}
+.upload-area .up-row {
+  display:flex; gap:10px; justify-content:center;
+}
+.upload-btn {
+  flex:1; max-width:160px;
+  background:var(--surface2); border:1px dashed var(--border-h);
+  border-radius:16px; padding:16px 8px; cursor:pointer;
+  text-align:center; transition:all 0.2s;
+}
+.upload-btn:active { background:var(--surface); }
+.upload-btn .ub-icon { font-size:22px; margin-bottom:5px; }
+.upload-btn .ub-text { font-size:12px; color:var(--text); font-weight:400; margin-bottom:2px; }
+.upload-btn .ub-sub  { font-size:10px; color:var(--muted); }
+
+/* 写真 */
+#preview-photo {
+  width:100%; height:auto; display:block;
+  user-select:none; -webkit-user-drag:none;
+  max-height:55dvh; object-fit:contain;
+  touch-action:none;
+}
+
+/* 眉オーバーレイ */
+.ov {
+  position:absolute; cursor:grab; touch-action:none; overflow:visible;
+  display:none; z-index:2;
+}
+.ov:active { cursor:grabbing; }
+.ov img { width:100%; height:auto; display:block; }
+
+/* マスク */
+.mask-ov {
+  position:absolute; cursor:grab; touch-action:none; border-radius:50%; display:none; z-index:1;
+}
+.mask-ov:active { cursor:grabbing; }
+
+/* ガイドオーバーレイ */
+#guide-overlay {
+  display:none; position:absolute; inset:0; z-index:10;
+  pointer-events:none;
+}
+#guide-canvas {
+  position:absolute; inset:0; width:100%; height:100%;
+  pointer-events:none;
+}
+.guide-footer {
+  pointer-events:auto;
+  position:absolute; bottom:0; left:0; right:0;
+  background:color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter:blur(12px);
+  padding:14px 16px;
+  border-top:1px solid var(--border);
+}
+.guide-footer .gf-title { font-size:13px; color:var(--text); font-weight:400; margin-bottom:3px; }
+.guide-footer .gf-sub   { font-size:11px; color:var(--muted); margin-bottom:12px; }
+
+/* ドラッグヒント */
+.drag-hint {
+  display:none; position:absolute; bottom:8px; left:0; right:0;
+  text-align:center; font-size:10px; color:rgba(196,132,74,0.6);
+  pointer-events:none;
+}
+
+/* 眉なし時のSVGプレビュー */
+.brow-preview-wrap {
+  padding:12px 20px; background:var(--surface);
+  border-bottom:1px solid var(--border);
+  display:flex; justify-content:center; align-items:center; gap:8px;
+}
+.brow-preview-wrap img {
+  width:42%; max-width:160px; height:auto;
+}
+
+/* スクロールパネル */
+.scroll-panel {
+  flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding:0 16px 56px;
+  background:var(--bg);
+}
+
+/* タイプstickyバー */
+.type-sticky {
+  position:sticky; top:0; z-index:100;
+  display:flex; gap:8px; padding:10px 0;
+  background:color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  margin:0 0 14px;
+}
+
+/* 共通パーツ */
+.quiz-wrap { width:100%; max-width:420px; position:relative; z-index:1; padding-bottom:48px; }
+.header { text-align:center; margin-bottom:36px; }
+.brand { text-align:center; margin-bottom:10px; }
+.brand-logo { display:inline-flex; align-items:baseline; }
+.brand-word { font-family:'Great Vibes',cursive; letter-spacing:0.02em; }
+.brand-dot  { font-family:'Cormorant Garamond',serif; font-style:italic; color:var(--accent); opacity:0.6; font-size:0.55em; margin:0 0.05em; vertical-align:middle; position:relative; top:-0.1em; }
+.bw1 { font-size:28px; color:var(--gold); }
+.bw2 { font-size:25px; color:var(--accent); }
+.bw3 { font-size:26px; color:var(--gold); }
+.bw4 { font-size:30px; color:var(--accent); font-style:italic; }
+.header h1 { font-family:'Cormorant Garamond',serif; font-weight:300; font-size:28px; color:var(--cream); line-height:1.4; margin-bottom:8px; }
+.header p { font-size:13px; color:var(--muted); letter-spacing:0.02em; line-height:1.9; }
+.progress-wrap { margin-bottom:28px; }
+.progress-info { display:flex; justify-content:space-between; margin-bottom:8px; }
+.progress-label { font-size:10px; letter-spacing:0.15em; color:var(--muted); text-transform:uppercase; }
+.progress-count { font-family:'Cormorant Garamond',serif; font-size:15px; color:var(--gold); }
+.progress-bar { height:2px; background:var(--surface2); border-radius:1px; }
+.progress-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--gold)); border-radius:1px; transition:width 0.5s cubic-bezier(0.4,0,0.2,1); }
+.screen { display:none; animation:fadeUp 0.35s ease forwards; }
+.screen.active { display:block; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+.q-label { font-size:10px; letter-spacing:0.2em; color:var(--accent); text-transform:uppercase; margin-bottom:14px; }
+.q-text { font-family:'Cormorant Garamond',serif; font-size:22px; line-height:1.5; color:var(--cream); margin-bottom:6px; }
+.q-sub { font-size:12px; color:var(--muted); line-height:1.8; margin-bottom:24px; }
+.options { display:flex; flex-direction:column; gap:9px; }
+.option { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:15px 18px; cursor:pointer; transition:all 0.2s; position:relative; overflow:hidden; }
+.option::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--accent); border-radius:2px; transform:scaleY(0); transition:transform 0.2s; }
+.option.selected { background:var(--surface2); border-color:var(--border-h); }
+.option.selected::before { transform:scaleY(1); }
+.option-text { font-size:13px; color:var(--text); line-height:1.5; }
+.divider { display:flex; align-items:center; gap:12px; margin-top:28px; }
+.divider-line { flex:1; height:1px; background:var(--border); }
+.divider-ornament { font-family:'Cormorant Garamond',serif; color:var(--accent); font-size:13px; opacity:0.5; }
+.intro-orn { font-family:'Cormorant Garamond',serif; font-size:56px; color:rgba(196,132,74,0.15); line-height:1; margin-bottom:8px; }
+
+/* 結果パーツ */
+.result-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; padding-top:14px; }
+.result-badge { display:inline-block; border:1px solid var(--border-h); padding:5px 16px; font-size:10px; letter-spacing:0.3em; color:var(--gold); text-transform:uppercase; border-radius:20px; background:var(--glow); }
+.result-type-inline { font-family:'Cormorant Garamond',serif; font-size:22px; color:var(--cream); }
+.result-type-name-inline { font-family:'Cormorant Garamond',serif; font-style:italic; font-size:13px; color:var(--gold); margin-left:8px; }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:16px; margin-bottom:12px; }
+.card-label { font-size:10px; letter-spacing:0.2em; color:var(--accent); text-transform:uppercase; margin-bottom:12px; font-weight:500; }
+.preset-row { display:flex; gap:6px; margin-bottom:14px; }
+.preset-btn { flex:1; background:transparent; border:1px solid var(--border); color:var(--muted); font-family:'M PLUS Rounded 1c',sans-serif; font-size:12px; font-weight:400; padding:8px; cursor:pointer; transition:all 0.2s; border-radius:20px; }
+.preset-btn.active { background:var(--glow); border-color:var(--border-h); color:var(--gold); font-weight:500; }
+.param-row { margin-bottom:11px; }
+.param-row:last-child { margin-bottom:0; }
+.param-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+.param-name { font-size:11px; color:var(--text); }
+.param-val { font-family:'Cormorant Garamond',serif; font-size:13px; color:var(--gold); min-width:36px; text-align:right; }
+input[type=range] { width:100%; -webkit-appearance:none; height:2px; background:rgba(196,132,74,0.2); border-radius:1px; outline:none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:20px; height:20px; border-radius:50%; background:var(--accent); cursor:pointer; box-shadow:0 2px 8px rgba(196,132,74,0.3); }
+.desc-text { font-size:13px; line-height:1.9; color:var(--text); }
+.prep-box { background:var(--glow); border:1px solid var(--border); border-radius:16px; padding:16px; margin-bottom:12px; }
+.prep-label { font-size:10px; letter-spacing:0.2em; color:var(--accent); text-transform:uppercase; margin-bottom:8px; font-weight:500; }
+.prep-text { font-size:12px; line-height:1.9; color:var(--muted); }
+.btn { width:100%; background:transparent; border:1px solid var(--border-h); color:var(--gold); font-family:'M PLUS Rounded 1c',sans-serif; font-size:12px; letter-spacing:0.1em; padding:13px; cursor:pointer; transition:all 0.2s; border-radius:24px; }
+.btn:active { background:var(--glow); }
+.btn-primary { background:linear-gradient(135deg,var(--accent),var(--gold)); border:none; color:#fff; font-family:'M PLUS Rounded 1c',sans-serif; font-size:14px; font-weight:500; letter-spacing:0.1em; padding:16px 36px; cursor:pointer; transition:opacity 0.2s; width:100%; border-radius:28px; box-shadow:0 4px 20px rgba(196,132,74,0.25); }
+.btn-primary:active { opacity:0.85; }
+.btn-confirm { width:100%; background:linear-gradient(135deg,var(--accent),var(--gold)); border:none; color:#fff; font-family:'M PLUS Rounded 1c',sans-serif; font-size:13px; font-weight:500; padding:13px; cursor:pointer; border-radius:24px; box-shadow:0 3px 12px rgba(196,132,74,0.3); }
+
+/* カラーパレット */
+.color-palette { display:grid; grid-template-columns:repeat(8,1fr); gap:7px; margin-bottom:4px; }
+.color-swatch { aspect-ratio:1; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:all 0.2s; position:relative; }
+.color-swatch.active { border-color:var(--gold); transform:scale(1.15); }
+.color-name { font-size:10px; color:var(--muted); text-align:center; min-height:14px; }
+
+/* ゾーン */
+.zone-section { padding:8px 0; }
+.zone-name { font-size:12px; color:var(--cream); margin-bottom:8px; font-weight:400; }
+.zone-divider { height:1px; background:var(--border); margin:8px 0; }
+
+/* マスクtoggle */
+.mask-toggle { background:transparent; border:1px solid var(--border); color:var(--muted); font-size:11px; padding:6px 16px; cursor:pointer; border-radius:20px; transition:all 0.2s; }
+.mask-toggle.on { background:var(--glow); border-color:var(--border-h); color:var(--gold); }
+.skin-palette { display:flex; gap:7px; flex-wrap:wrap; margin-bottom:4px; }
+.skin-swatch { width:28px; height:28px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:all 0.2s; }
+.skin-swatch.active { border-color:var(--gold); transform:scale(1.15); }
+
+/* バリアント選択 */
+.variant-row { display:flex; gap:6px; margin-bottom:12px; }
+.var-btn { flex:1; background:transparent; border:1px solid var(--border); color:var(--muted);
+  font-family:'M PLUS Rounded 1c',sans-serif; font-size:12px; font-weight:400; padding:7px 4px;
+  cursor:pointer; transition:all 0.2s; border-radius:20px; }
+.var-btn.active { background:var(--glow); border-color:var(--border-h); color:var(--gold); font-weight:500; }
+</style>
+</head>
+<body class="phase-quiz">
+
+<!-- ===== QUIZ ===== -->
+<div class="quiz-wrap" id="quiz-wrap">
+
+  <!-- INTRO -->
+  <div class="screen active" id="screen-intro">
+    <div class="header">
+      <div class="brand">
+        <div class="brand-logo">
+          <span class="brand-word bw1">soi</span><span class="brand-dot">.</span>
+          <span class="brand-word bw2">moi</span><span class="brand-dot">.</span>
+          <span class="brand-word bw3">vrai</span><span class="brand-dot">.</span>
+          <span class="brand-word bw4">être</span><span class="brand-dot">.</span>
+        </div>
+      </div>
+      <h1>あなたの眉を、<br>もっと好きになる。</h1>
+      <p>6つの質問から、あなたの眉の<br>いちばん自然な姿を見つけます。</p>
+    </div>
+    <div style="text-align:center">
+      <div class="intro-orn">〰</div>
+      <p style="font-size:13px;color:var(--muted);line-height:2;letter-spacing:0.02em">好みじゃなくて、あなた自身から。<br>素の私が、いちばん美しい。</p>
+      <button class="btn-primary" style="margin-top:28px" onclick="startQuiz()">はじめる</button>
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-wrap" id="progress-wrap" style="display:none">
+    <div class="progress-info">
+      <span class="progress-label">Progress</span>
+      <span class="progress-count" id="progress-count">1 / 6</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:16.6%"></div></div>
+  </div>
+
+  <!-- Q1〜Q6 -->
+  <div class="screen" id="screen-q1">
+    <div class="q-label">Question 01</div>
+    <div class="q-text">毎朝の眉メイク、<br>どのくらい時間をかけてる？</div>
+    <div class="q-sub">今のリアルを教えてください</div>
+    <div class="options">
+      <div class="option" onclick="answer(1,'A',1)"><div class="option-text">1分以内　—　パパッと済ませる</div></div>
+      <div class="option" onclick="answer(1,'B',2)"><div class="option-text">3〜5分　—　一番時間がかかっている</div></div>
+      <div class="option" onclick="answer(1,'C',3)"><div class="option-text">5分以上　—　納得いくまでやり直す</div></div>
+    </div>
+    <div class="divider"><div class="divider-line"></div><div class="divider-ornament">◇</div><div class="divider-line"></div></div>
+  </div>
+
+  <div class="screen" id="screen-q2">
+    <div class="q-label">Question 02</div>
+    <div class="q-text">眉のこと、<br>どんなとき悩む？</div>
+    <div class="q-sub">一番ぐっとくるものを選んでね</div>
+    <div class="options">
+      <div class="option" onclick="answer(2,'A',1)"><div class="option-text">左右対称にならない</div></div>
+      <div class="option" onclick="answer(2,'B',2)"><div class="option-text">夕方になると眉尻が消える</div></div>
+      <div class="option" onclick="answer(2,'C',3)"><div class="option-text">自分に合う形がわからない</div></div>
+      <div class="option" onclick="answer(2,'D',4)"><div class="option-text">抜いていたら生えなくなってしまった</div></div>
+    </div>
+    <div class="divider"><div class="divider-line"></div><div class="divider-ornament">◇</div><div class="divider-line"></div></div>
+  </div>
+
+  <div class="screen" id="screen-q3">
+    <div class="q-label">Question 03</div>
+    <div class="q-text">すっぴんの眉、<br>どんな感じ？</div>
+    <div class="q-sub">ありのままを教えてね</div>
+    <div class="options">
+      <div class="option" onclick="answer(3,'A',1)"><div class="option-text">全体的にしっかり生えている</div></div>
+      <div class="option" onclick="answer(3,'B',2)"><div class="option-text">眉頭はあるが、眉尻がない・薄い</div></div>
+      <div class="option" onclick="answer(3,'C',3)"><div class="option-text">全体的に薄い・まばら</div></div>
+      <div class="option" onclick="answer(3,'D',4)"><div class="option-text">ほぼない（全剃り・脱毛など）</div></div>
+    </div>
+    <div class="divider"><div class="divider-line"></div><div class="divider-ornament">◇</div><div class="divider-line"></div></div>
+  </div>
+
+  <div class="screen" id="screen-q4">
+    <div class="q-label">Question 04</div>
+    <div class="q-text">顔の輪郭で<br>一番近いのは？</div>
+    <div class="q-sub">わからなければ最後の選択肢でOK</div>
+    <div class="options">
+      <div class="option" onclick="answer(4,'A',1)"><div class="option-text">丸顔　—　ふっくら・可愛らしい</div></div>
+      <div class="option" onclick="answer(4,'B',2)"><div class="option-text">面長　—　縦幅がある・大人っぽい</div></div>
+      <div class="option" onclick="answer(4,'C',3)"><div class="option-text">ベース型・逆三角形　—　シャープ</div></div>
+      <div class="option" onclick="answer(4,'D',4)"><div class="option-text">わからない</div></div>
+    </div>
+    <div class="divider"><div class="divider-line"></div><div class="divider-ornament">◇</div><div class="divider-line"></div></div>
+  </div>
+
+  <div class="screen" id="screen-q5">
+    <div class="q-label">Question 05</div>
+    <div class="q-text">ふだんの自分、<br>どんなテイスト？</div>
+    <div class="q-sub">いちばん「わたしらしい」ものを</div>
+    <div class="options">
+      <div class="option" onclick="answer(5,'A',1)"><div class="option-text">オフィスカジュアル・ベーシック</div></div>
+      <div class="option" onclick="answer(5,'B',2)"><div class="option-text">トレンド・カジュアル・韓国風</div></div>
+      <div class="option" onclick="answer(5,'C',3)"><div class="option-text">モード・クール（黒系・ジャケット多め）</div></div>
+    </div>
+    <div class="divider"><div class="divider-line"></div><div class="divider-ornament">◇</div><div class="divider-line"></div></div>
+  </div>
+
+  <div class="screen" id="screen-q6">
+    <div class="q-label">Question 06</div>
+    <div class="q-text">眉の下の産毛、<br>軽く整えることって<br>できそう？</div>
+    <div class="q-sub">より自然な仕上がりのための「土台」について</div>
+    <div class="options">
+      <div class="option" onclick="answer(6,'A',1)"><div class="option-text">はい、普段から整えているので問題ない</div></div>
+      <div class="option" onclick="answer(6,'B',2)"><div class="option-text">仕上がりが綺麗になるならやってみたい</div></div>
+      <div class="option" onclick="answer(6,'C',3)"><div class="option-text">剃るのは少し抵抗がある</div></div>
+    </div>
+    <div class="divider"><div class="divider-line"></div><div class="divider-ornament">◇</div><div class="divider-line"></div></div>
+  </div>
+
+</div><!-- /quiz-wrap -->
+
+<!-- ===== RESULT ===== -->
+<div id="result-wrap" style="display:none;flex-direction:column;height:100dvh;overflow:hidden;">
+
+  <!-- 上部: 固定プレビュー -->
+  <div class="preview-fixed no-photo" id="preview-fixed">
+
+    <!-- 写真なし: アップロードエリア -->
+    <div class="upload-area" id="upload-area">
+      <input type="file" id="photo-input"  accept="image/*" style="display:none" onchange="loadPhoto(event,'upload')">
+      <input type="file" id="camera-input" accept="image/*" capture="user" style="display:none" onchange="loadPhoto(event,'camera')">
+      <div class="up-row">
+        <div class="upload-btn" id="camera-upload-btn" onclick="document.getElementById('camera-input').click()">
+          <div class="ub-icon">📷</div>
+          <div class="ub-text">今すぐ撮る</div>
+          <div class="ub-sub">ガイドで撮影</div>
+        </div>
+        <div class="upload-btn" onclick="document.getElementById('photo-input').click()">
+          <div class="ub-icon">🖼</div>
+          <div class="ub-text">写真を選ぶ</div>
+          <div class="ub-sub">ドラッグで位置合わせ</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 写真なし: 眉プレビュー -->
+    <div class="brow-preview-wrap" id="brow-preview-wrap">
+      <img id="brow-prev-L" src="" style="mix-blend-mode:multiply">
+      <img id="brow-prev-R" src="" style="mix-blend-mode:multiply;transform:scaleX(-1)">
+    </div>
+
+    <!-- 写真あり -->
+    <img id="preview-photo" alt="" style="display:none">
+
+    <!-- ガイドオーバーレイ（写真アップ後に表示） -->
+    <div id="guide-overlay">
+      <canvas id="guide-canvas"></canvas>
+      <!-- アップ時: 写真をドラッグ・ピンチで動かす -->
+      <div id="guide-photo-move" style="display:none;position:absolute;inset:0">
+        <!-- js側でtouchイベントをpreview-photoに直接設定 -->
+      </div>
+      <div class="guide-footer">
+        <div class="gf-title" id="guide-title">顔をガイドに合わせてください</div>
+        <div class="gf-sub" id="guide-sub">目が青いラインに重なるよう調整してね</div>
+        <button class="btn-confirm" onclick="confirmGuide()">合わせました ✓</button>
+      </div>
+    </div>
+
+    <!-- 眉オーバーレイ -->
+    <div class="ov" id="ov-L" style="width:160px">
+      <img id="brow-img-L" src="" alt="" draggable="false" style="width:100%;height:auto;display:block;mix-blend-mode:multiply">
+    </div>
+    <div class="ov" id="ov-R" style="width:160px">
+      <img id="brow-img-R" src="" alt="" draggable="false" style="width:100%;height:auto;display:block;mix-blend-mode:multiply;transform:scaleX(-1)">
+    </div>
+
+    <!-- マスクCanvas -->
+    <canvas class="mask-ov" id="mask-L" style="width:140px;height:36px"></canvas>
+    <canvas class="mask-ov" id="mask-R" style="width:140px;height:36px"></canvas>
+
+    <div class="drag-hint" id="drag-hint">ドラッグで眉を動かせます</div>
+    <div id="landmark-status" style="display:none;position:absolute;top:6px;right:8px;font-size:10px;font-family:'M PLUS Rounded 1c',sans-serif;padding:3px 8px;border-radius:10px;pointer-events:none"></div>
+  </div>
+
+  <!-- 下部: スクロールパネル -->
+  <div class="scroll-panel" id="scroll-panel">
+
+    <!-- タイプ選択 sticky -->
+    <div class="type-sticky">
+      <button class="preset-btn active" id="preset-A" onclick="applyPreset('A')">Type A</button>
+      <button class="preset-btn"        id="preset-B" onclick="applyPreset('B')">Type B</button>
+      <button class="preset-btn"        id="preset-C" onclick="applyPreset('C')">Type C</button>
+    </div>
+
+    <!-- バリアント選択 -->
+    <div class="variant-row">
+      <button class="var-btn active" id="var-0" onclick="selectVariant(0)">No.1</button>
+      <button class="var-btn"        id="var-1" onclick="selectVariant(1)">No.2</button>
+      <button class="var-btn"        id="var-2" onclick="selectVariant(2)">No.3</button>
+    </div>
+
+    <!-- 結果ヘッダー -->
+    <div class="result-header">
+      <div>
+        <div class="result-badge">Your Type</div>
+        <div style="margin-top:6px">
+          <span class="result-type-inline" id="result-type">TYPE A</span>
+          <span class="result-type-name-inline" id="result-type-name">Natural Arch</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 説明 -->
+    <div class="card" style="margin-bottom:12px">
+      <div class="desc-text" id="result-desc" style="font-size:13px;color:var(--muted);line-height:1.8"></div>
+    </div>
+
+    <!-- 眉の色 -->
+    <div class="card">
+      <div class="card-label">眉の色</div>
+      <div class="color-palette" id="color-palette" style="margin-bottom:6px"></div>
+      <div class="color-name" id="color-name">ナチュラルブラウン</div>
+    </div>
+
+    <!-- 写真上の基本調整（写真ありで表示） -->
+    <div class="card" id="photo-basic-card" style="display:none">
+      <div class="card-label">サイズ・位置</div>
+      <div class="param-row">
+        <div class="param-head"><span class="param-name">サイズ</span><span class="param-val" id="v-ps">110px</span></div>
+        <input type="range" id="s-ps" min="50" max="260" value="110" oninput="updPS(this.value)">
+      </div>
+      <div class="param-row" style="margin-bottom:0">
+        <div class="param-head"><span class="param-name">濃さ</span><span class="param-val" id="v-po">85%</span></div>
+        <input type="range" id="s-po" min="20" max="100" value="85" oninput="updPO(this.value)">
+      </div>
+    </div>
+
+    <!-- 保存・変更 -->
+    <div id="photo-action-btns" style="display:none;margin-bottom:12px">
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <button class="btn" style="flex:1" onclick="exportComposite()">📷 保存</button>
+        <button class="btn" style="flex:1" onclick="resetPhoto()">写真を変える</button>
+      </div>
+    </div>
+
+    <!-- もっと細かく調整 -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleAdvanced()">
+        <div class="card-label" style="margin-bottom:0">もっと細かく調整する</div>
+        <span id="adv-icon" style="font-size:11px;color:var(--muted)">▾</span>
+      </div>
+      <div id="adv-body" style="display:none;margin-top:16px">
+
+        <div class="card-label">形の調整</div>
+        <div class="param-row">
+          <div class="param-head"><span class="param-name">長さ</span><span class="param-val" id="v-len">100%</span></div>
+          <input type="range" id="s-len" min="60" max="140" value="100" oninput="onP('length',this.value)">
+        </div>
+        <div class="param-row">
+          <div class="param-head"><span class="param-name">太さ</span><span class="param-val" id="v-thick">100%</span></div>
+          <input type="range" id="s-thick" min="50" max="160" value="100" oninput="onP('thickness',this.value)">
+        </div>
+        <div class="param-row">
+          <div class="param-head"><span class="param-name">角度</span><span class="param-val" id="v-angle">+3°</span></div>
+          <input type="range" id="s-angle" min="-15" max="20" value="3" oninput="onP('angle',this.value)">
+        </div>
+        <div class="param-row">
+          <div class="param-head"><span class="param-name">アーチ</span><span class="param-val" id="v-arch">40%</span></div>
+          <input type="range" id="s-arch" min="0" max="100" value="40" oninput="onP('arch',this.value)">
+        </div>
+        <div class="param-row">
+          <div class="param-head"><span class="param-name">眉尻の濃さ</span><span class="param-val" id="v-fi">30%</span></div>
+          <input type="range" id="s-fi" min="10" max="90" value="30" oninput="onP('fadeIn',this.value)">
+        </div>
+        <div class="param-row">
+          <div class="param-head"><span class="param-name">眉頭の濃さ</span><span class="param-val" id="v-fo">20%</span></div>
+          <input type="range" id="s-fo" min="5" max="80" value="20" oninput="onP('fadeOut',this.value)">
+        </div>
+
+        <div class="zone-divider" style="margin:14px 0"></div>
+        <div class="card-label">色の調整</div>
+        <div class="param-row">
+          <div class="param-head"><span class="param-name">明暗</span><span class="param-val" id="v-cbr">0</span></div>
+          <input type="range" id="s-cbr" min="-50" max="50" value="0" oninput="onColor('br',this.value)">
+        </div>
+        <div class="param-row">
+          <div class="param-head"><span class="param-name">赤み</span><span class="param-val" id="v-crd">0</span></div>
+          <input type="range" id="s-crd" min="-30" max="30" value="0" oninput="onColor('rd',this.value)">
+        </div>
+        <div class="param-row">
+          <div class="param-head"><span class="param-name">グレー感</span><span class="param-val" id="v-csa">0</span></div>
+          <input type="range" id="s-csa" min="-50" max="50" value="0" oninput="onColor('sa',this.value)">
+        </div>
+
+        <div class="zone-divider" style="margin:14px 0" id="photo-extra-div" style="display:none"></div>
+        <div id="photo-extra-controls" style="display:none">
+          <div class="card-label">写真上の微調整</div>
+          <div class="param-row">
+            <div class="param-head"><span class="param-name">上下</span><span class="param-val" id="v-vy">0</span></div>
+            <input type="range" id="s-vy" min="-30" max="30" value="0" oninput="updVY(this.value)">
+          </div>
+        </div>
+
+        <div class="zone-divider" style="margin:14px 0" id="mask-div" style="display:none"></div>
+        <div id="mask-controls" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div class="card-label" style="margin-bottom:0">眉隠しマスク</div>
+            <button class="mask-toggle" id="mask-toggle" onclick="toggleMask()">OFF</button>
+          </div>
+          <div id="mask-body" style="display:none">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px">肌色</div>
+            <div class="skin-palette" id="skin-palette"></div>
+            <div class="param-row" style="margin-top:12px">
+              <div class="param-head"><span class="param-name">明暗</span><span class="param-val" id="v-mbr">0</span></div>
+              <input type="range" id="s-mbr" min="-60" max="60" value="0" oninput="updMask('br',this.value)">
+            </div>
+            <div class="param-row">
+              <div class="param-head"><span class="param-name">不透明度</span><span class="param-val" id="v-mop">85%</span></div>
+              <input type="range" id="s-mop" min="20" max="100" value="85" oninput="updMask('op',this.value)">
+            </div>
+            <div class="param-row">
+              <div class="param-head"><span class="param-name">ぼかし</span><span class="param-val" id="v-mbl">8</span></div>
+              <input type="range" id="s-mbl" min="2" max="24" value="8" oninput="updMask('bl',this.value)">
+            </div>
+            <div class="param-row" style="margin-bottom:0">
+              <div class="param-head"><span class="param-name">サイズ</span><span class="param-val" id="v-msz">140px</span></div>
+              <input type="range" id="s-msz" min="60" max="260" value="140" oninput="updMask('sz',this.value)">
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="prep-box">
+      <div class="prep-label">使う前のひと手間</div>
+      <div class="prep-text" id="prep-text"></div>
+    </div>
+    <button class="btn" onclick="resetQuiz()">もう一度やってみる</button>
+  </div>
+</div>
+
+<script>
+
+// ============================================================
+// QUIZ
+// ============================================================
+const scores={A:0,B:0,C:0}, answers={};
+const scoreMap={
+  1:{A:{A:1},B:{A:2,C:1},C:{C:2,B:1}},
+  2:{A:{A:2,C:1},B:{A:2,C:2},C:{A:2,B:1},D:{C:3,A:1}},
+  3:{A:{A:1,B:1},B:{A:2,C:2},C:{C:2,A:1},D:{C:3}},
+  4:{A:{C:2,B:1},B:{B:3},C:{A:2,C:1},D:{A:1}},
+  5:{A:{A:2,C:1},B:{B:3},C:{C:2,B:1}}
+};
+const typeData={
+  A:{name:'Natural Arch',desc:'毎朝の再現性を大切にしたい方へ。左右差が気になる、夕方になると消えてしまう、そんな悩みにやさしく寄り添うナチュラルな形です。'},
+  B:{name:'Straight Mode',desc:'今っぽい平行眉で、顔印象を軽やかに。フラットなラインが余白を埋めて、すっきり洗練された表情をつくります。'},
+  C:{name:'Lady Angle',desc:'目元を引き上げ、凛とした印象に。眉尻がうまく描けない、昔抜きすぎた、そんな方の「なりたい」に応える斜め上向きラインです。'}
+};
+const prepGuide={
+  A:'いつも丁寧にケアされているんですね。ガイドプレートに沿ってそのままお使いいただけます。',
+  B:'眉の下の産毛を少し整えると、シールがより自然に馴染みます。ほんの少しだけでOKです。',
+  C:'最初は練習用シールで試してみてください。眉の下のラインだけ意識するところから、ゆっくりはじめましょう。'
+};
+
+function startQuiz(){
+  document.getElementById('screen-intro').classList.remove('active');
+  document.getElementById('progress-wrap').style.display='block';
+  showQ(1);
+}
+function showQ(n){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-q'+n).classList.add('active');
+  document.getElementById('progress-fill').style.width=(n/6*100)+'%';
+  document.getElementById('progress-count').textContent=n+' / 6';
+}
+function answer(q,choice,idx){
+  answers[q]={choice,idx};
+  if(q<=5&&scoreMap[q]?.[choice]) for(const[t,v] of Object.entries(scoreMap[q][choice])) scores[t]+=v;
+  document.querySelectorAll('#screen-q'+q+' .option').forEach((o,i)=>o.classList.toggle('selected',i===idx-1));
+  setTimeout(()=>q<6?showQ(q+1):showResult(),260);
+}
+function getType(){
+  let t=Object.entries(scores).sort((a,b)=>b[1]-a[1])[0][0];
+  const s=Object.entries(scores).sort((a,b)=>b[1]-a[1]);
+  if(s[0][1]===s[1][1]){
+    const pair=new Set([s[0][0],s[1][0]]);
+    if(pair.has('A')&&pair.has('B')) t=answers[4]?.choice==='B'?'B':'A';
+    else if(pair.has('A')&&pair.has('C')) t=(answers[2]?.choice==='B'||answers[2]?.choice==='D')?'C':'A';
+    else if(pair.has('B')&&pair.has('C')) t=answers[5]?.choice==='B'?'B':'C';
+  }
+  if(Object.values(scores).filter(v=>Math.max(...Object.values(scores))-v<=1).length===3) t='A';
+  return t;
+}
+function showResult(){
+  const t=getType();
+  currentSlot=t;
+  document.body.className='phase-result';
+  document.getElementById('quiz-wrap').style.display='none';
+  document.getElementById('result-wrap').style.display='flex';
+  document.getElementById('prep-text').textContent=prepGuide[answers[6]?.choice||'A'];
+  switchSlot(t);
+}
+function resetQuiz(){
+  scores.A=0;scores.B=0;scores.C=0;
+  Object.keys(answers).forEach(k=>delete answers[k]);
+  // スロットを初期状態に戻す
+  ['A','B','C'].forEach(k=>{ slots[k]={...DEFAULTS[k]}; });
+  currentSlot='A';
+  document.body.className='phase-quiz';
+  document.getElementById('quiz-wrap').style.display='';
+  document.getElementById('result-wrap').style.display='none';
+  document.getElementById('progress-wrap').style.display='none';
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-intro').classList.add('active');
+  resetPhoto();
+}
+
+// ============================================================
+// DESIGN SLOTS
+// 全体パラメータ + ゾーン補正値（±）を持つ
+// ゾーン補正はnull=未設定（0扱い）
+// ============================================================
+const DEFAULTS = {
+  A:{ length:100, thickness:100, angle:3,  arch:40, fadeIn:30, fadeOut:20,
+      zhTh:0, zhAn:0, zhAr:0, zhFi:null, zhLe:0,
+      zmTh:0, zmAn:0, zmAr:0,
+      ztTh:0, ztAn:0, ztAr:0, ztFo:null, ztLe:0,
+      photoSz:110, photoOp:85, photoVy:0 },
+  B:{ length:105, thickness:115, angle:0,  arch:10, fadeIn:40, fadeOut:30,
+      zhTh:0, zhAn:0, zhAr:0, zhFi:null, zhLe:0,
+      zmTh:0, zmAn:0, zmAr:0,
+      ztTh:0, ztAn:0, ztAr:0, ztFo:null, ztLe:0,
+      photoSz:110, photoOp:85, photoVy:0 },
+  C:{ length:95,  thickness:80,  angle:8,  arch:20, fadeIn:25, fadeOut:15,
+      zhTh:0, zhAn:0, zhAr:0, zhFi:null, zhLe:0,
+      zmTh:0, zmAn:0, zmAr:0,
+      ztTh:0, ztAn:0, ztAr:0, ztFo:null, ztLe:0,
+      photoSz:110, photoOp:85, photoVy:0 },
+};
+const slots = {
+  A:{...DEFAULTS.A}, B:{...DEFAULTS.B}, C:{...DEFAULTS.C}
+};
+let currentSlot='A';
+function slot(){ return slots[currentSlot]; }
+
+// ゾーン補正を加味した最終パラメータ
+function getMergedParams(){
+  const s=slot();
+  // 長さ: 全体 + 眉尻補正(zhLe) + 眉頭補正(ztLe)
+  const length = clamp(s.length + s.zhLe + s.ztLe, 50, 160);
+  // 太さ: 全体 + 3ゾーンの補正平均
+  const thickness = clamp(s.thickness + Math.round((s.zhTh+s.zmTh+s.ztTh)/3), 30, 200);
+  // 角度: 全体 + 3ゾーンの補正平均
+  const angle = clamp(s.angle + (s.zhAn+s.zmAn+s.ztAn)/3, -20, 30);
+  // アーチ: 全体 + 3ゾーンの補正平均
+  const arch = clamp(s.arch + Math.round((s.zhAr+s.zmAr+s.ztAr)/3), 0, 100);
+  // 濃さ: ゾーン指定があればそちら、なければ全体値
+  const fadeIn  = s.zhFi !== null ? s.zhFi  : s.fadeIn;
+  const fadeOut = s.ztFo !== null ? s.ztFo  : s.fadeOut;
+  return {length, thickness, angle, arch, fadeIn, fadeOut};
+}
+function clamp(v,min,max){ return Math.max(min,Math.min(max,v)); }
+
+// スロット切替（ボタン押下）
+function applyPreset(t){
+  currentSlot=t;
+  switchSlot(t);
+}
+function switchSlot(t){
+  ['A','B','C'].forEach(x=>document.getElementById('preset-'+x).classList.toggle('active',x===t));
+  currentVariant=0;
+  document.querySelectorAll('.var-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+  document.getElementById('result-type').textContent='TYPE '+t;
+  document.getElementById('result-type-name').textContent=typeData[t].name;
+  document.getElementById('result-desc').textContent=typeData[t].desc;
+  syncUI();
+  syncPhotoUI();
+  updateBrowImages();
+  render();
+}
+
+// 写真調整UIをスロットの値に同期
+function syncPhotoUI(){
+  const s=slot();
+  const sz=s.photoSz, op=s.photoOp, vy=s.photoVy;
+  document.getElementById('s-ps').value=sz; document.getElementById('v-ps').textContent=sz+'px';
+  document.getElementById('s-po').value=op; document.getElementById('v-po').textContent=op+'%';
+  document.getElementById('s-vy').value=vy; document.getElementById('v-vy').textContent=(vy>=0?'+':'')+vy;
+  // 実際のオーバーレイにも反映
+  document.getElementById('ov-L').style.width=sz+'px';
+  document.getElementById('ov-R').style.width=sz+'px';
+  document.getElementById('ov-L').style.opacity=(op/100).toFixed(2);
+  document.getElementById('ov-R').style.opacity=(op/100).toFixed(2);
+  vyOffset=vy;
+  document.getElementById('ov-L').style.top=(baseL.y+vyOffset)+'px';
+  document.getElementById('ov-R').style.top=(baseR.y+vyOffset)+'px';
+}
+
+// UIをスロットの値に同期
+function syncUI(){
+  const s=slot();
+  // 全体スライダー
+  setSlider('s-len',   s.length,    'v-len',   v=>v+'%');
+  setSlider('s-thick', s.thickness, 'v-thick', v=>v+'%');
+  setSlider('s-angle', s.angle,     'v-angle', v=>(v>=0?'+':'')+v+'°');
+  setSlider('s-arch',  s.arch,      'v-arch',  v=>v+'%');
+  setSlider('s-fi',    s.fadeIn,    'v-fi',    v=>v+'%');
+  setSlider('s-fo',    s.fadeOut,   'v-fo',    v=>v+'%');
+  // ゾーン補正スライダー（±値）
+  setSlider('s-zh-th', s.zhTh, 'v-zh-th', fmtDelta);
+  setSlider('s-zh-an', s.zhAn, 'v-zh-an', fmtDeltaDeg);
+  setSlider('s-zh-ar', s.zhAr, 'v-zh-ar', fmtDelta);
+  setSlider('s-zh-fi', s.zhFi!==null?s.zhFi:s.fadeIn,  'v-zh-fi', v=>v+'%');
+  setSlider('s-zh-le', s.zhLe, 'v-zh-le', fmtDelta);
+  setSlider('s-zm-th', s.zmTh, 'v-zm-th', fmtDelta);
+  setSlider('s-zm-an', s.zmAn, 'v-zm-an', fmtDeltaDeg);
+  setSlider('s-zm-ar', s.zmAr, 'v-zm-ar', fmtDelta);
+  setSlider('s-zt-th', s.ztTh, 'v-zt-th', fmtDelta);
+  setSlider('s-zt-an', s.ztAn, 'v-zt-an', fmtDeltaDeg);
+  setSlider('s-zt-ar', s.ztAr, 'v-zt-ar', fmtDelta);
+  setSlider('s-zt-fo', s.ztFo!==null?s.ztFo:s.fadeOut, 'v-zt-fo', v=>v+'%');
+  setSlider('s-zt-le', s.ztLe, 'v-zt-le', fmtDelta);
+}
+function setSlider(sid, val, vid, fmt){
+  const se=document.getElementById(sid);
+  const ve=document.getElementById(vid);
+  if(se) se.value=Math.round(val);
+  if(ve) ve.textContent=fmt(Math.round(val));
+}
+function fmtDelta(v){ return (v>=0?'+':'')+v; }
+function fmtDeltaDeg(v){ return (v>=0?'+':'')+v+'°'; }
+
+// 全体パラメータ変更 → スロットに保存
+function onP(key,val){
+  slot()[key]=parseFloat(val);
+  // ラベル更新
+  const fmt={length:v=>v+'%',thickness:v=>v+'%',angle:v=>(v>=0?'+':'')+v+'°',arch:v=>v+'%',fadeIn:v=>v+'%',fadeOut:v=>v+'%'};
+  const lid={length:'v-len',thickness:'v-thick',angle:'v-angle',arch:'v-arch',fadeIn:'v-fi',fadeOut:'v-fo'};
+  if(lid[key]) document.getElementById(lid[key]).textContent=fmt[key](Math.round(parseFloat(val)));
+  render();
+}
+
+// ゾーン補正値変更 → スロットに保存
+function onZP(zone,key,val){
+  const keyMap={
+    'head-thickness':'zhTh','head-angle':'zhAn','head-arch':'zhAr','head-fadeIn':'zhFi','head-length':'zhLe',
+    'mid-thickness':'zmTh', 'mid-angle':'zmAn', 'mid-arch':'zmAr',
+    'tail-thickness':'ztTh','tail-angle':'ztAn','tail-arch':'ztAr','tail-fadeOut':'ztFo','tail-length':'ztLe',
+  };
+  const labelMap={
+    'head-thickness':'v-zh-th','head-angle':'v-zh-an','head-arch':'v-zh-ar','head-fadeIn':'v-zh-fi','head-length':'v-zh-le',
+    'mid-thickness':'v-zm-th', 'mid-angle':'v-zm-an', 'mid-arch':'v-zm-ar',
+    'tail-thickness':'v-zt-th','tail-angle':'v-zt-an','tail-arch':'v-zt-ar','tail-fadeOut':'v-zt-fo','tail-length':'v-zt-le',
+  };
+  const k=`${zone}-${key}`;
+  if(keyMap[k]) slot()[keyMap[k]]=parseFloat(val);
+  if(labelMap[k]){
+    const v=Math.round(parseFloat(val));
+    const isAbsolute=(key==='fadeIn'||key==='fadeOut');
+    const isAngle=(key==='angle');
+    document.getElementById(labelMap[k]).textContent=
+      isAbsolute ? v+'%' : isAngle ? fmtDeltaDeg(v) : fmtDelta(v);
+  }
+  render();
+}
+
+// ゾーンアコーディオン
+
+
+// ============================================================
+// COLOR SYSTEM
+// ============================================================
+const COLOR_PALETTE=[
+  {id:'c1',name:'ナチュラルブラウン',mid:'#3d2008',light:'#5a3510',hair:'#3a2008'},
+  {id:'c2',name:'ライトブラウン',    mid:'#5a3518',light:'#7a5030',hair:'#522e14'},
+  {id:'c3',name:'アッシュブラウン',  mid:'#4a3828',light:'#6a5240',hair:'#443228'},
+  {id:'c4',name:'ダークブラウン',    mid:'#221008',light:'#3a2010',hair:'#1e0e06'},
+  {id:'c5',name:'グレージュ',        mid:'#4a4238',light:'#6a6058',hair:'#443c32'},
+  {id:'c6',name:'アッシュグレー',    mid:'#3a3838',light:'#585858',hair:'#343232'},
+  {id:'c7',name:'ダークグレー',      mid:'#222222',light:'#3a3a3a',hair:'#1e1e1e'},
+  {id:'c8',name:'ソフトブラック',    mid:'#141210',light:'#261e18',hair:'#100e0c'},
+];
+let currentColor=COLOR_PALETTE[0];
+let colorAdj={br:0,rd:0,sa:0};
+
+function initColorPalette(){
+  const el=document.getElementById('color-palette');
+  el.innerHTML=COLOR_PALETTE.map((c,i)=>
+    `<div class="color-swatch ${i===0?'active':''}" id="swatch-${c.id}"
+      style="background:${c.mid}" onclick="selectColor('${c.id}')" title="${c.name}"></div>`
+  ).join('');
+}
+function selectColor(id){
+  currentColor=COLOR_PALETTE.find(c=>c.id===id)||COLOR_PALETTE[0];
+  document.querySelectorAll('.color-swatch').forEach(el=>el.classList.remove('active'));
+  document.getElementById('swatch-'+id).classList.add('active');
+  document.getElementById('color-name').textContent=currentColor.name;
+  colorAdj={br:0,rd:0,sa:0};
+  ['cbr','crd','csa'].forEach(k=>{
+    document.getElementById('s-'+k).value=0;
+    document.getElementById('v-'+k).textContent='0';
+  });
+  render();
+}
+function onColor(key,val){
+  colorAdj[key]=+val;
+  document.getElementById('v-c'+key).textContent=(+val>=0?'+':'')+Math.round(val);
+  render();
+}
+function adjHex(hex){
+  let r=parseInt(hex.slice(1,3),16);
+  let g=parseInt(hex.slice(3,5),16);
+  let b=parseInt(hex.slice(5,7),16);
+  const {br,rd,sa}=colorAdj;
+  r=clamp(r+br*1.5+rd*2-sa*0.5,0,255);
+  g=clamp(g+br*1.5-sa*0.3,0,255);
+  b=clamp(b+br*1.5-rd*0.5-sa*0.5,0,255);
+  const h=v=>Math.round(v).toString(16).padStart(2,'0');
+  return `#${h(r)}${h(g)}${h(b)}`;
+}
+
+// ============================================================
+// SVG EYEBROW ENGINE
+// 眉頭(x0)固定、眉尻(x3)がlengthで伸縮
+// ============================================================
+function genEyebrow(p,W=148,H=40,midC,lightC,hairC){
+  midC  = midC   || '#3d2008';
+  lightC= lightC || '#5a3510';
+  hairC = hairC  || '#3a2008';
+
+  const x3=W*0.95;  // 眉頭（鼻側・右端）は常に固定
+  const len=W*0.92*(p.length/100);
+  const x0=x3-len;  // 眉尻（こめかみ側・左端）がlenに応じて伸びる
+
+  const thick=H*0.48*(p.thickness/100);
+  const archH=thick*1.3*(p.arch/100);
+  const aRad=p.angle*Math.PI/180;
+  const angleOff=len*Math.tan(aRad);
+
+  const baseY=H*0.75;
+  const y0=baseY, y3=baseY-angleOff;
+  const mx=x0+(x3-x0)*0.45;
+  const peakY=Math.min(y0,y3)-archH;
+  const y1=y0-(y0-peakY)*0.4, y2=y3-(y3-peakY)*0.5;
+
+  const by0=y0+thick*0.3, by3=y3+thick*0.5;
+  const by1=y1+thick*0.85, by2=y2+thick*0.9;
+
+  const top=`M${x0},${y0} C${x0+(mx-x0)*0.6},${y1} ${x3-(x3-mx)*0.5},${y2} ${x3},${y3}`;
+  const bot=`L${x3},${by3} C${x3-(x3-mx)*0.5},${by2} ${x0+(mx-x0)*0.6},${by1} ${x0},${by0} Z`;
+
+  const gid='g'+Math.random().toString(36).slice(2,8);
+  const fiOp=clamp(p.fadeIn/100*1.1,0,0.95).toFixed(2);
+  const foOp=clamp(p.fadeOut/100*1.05,0,0.88).toFixed(2);
+
+  let hairs='';
+  for(let i=0;i<7;i++){
+    const t=i/6;
+    const hx=x0+(x3-x0)*t;
+    const hy_top=cubic(t,y0,y1,y2,y3);
+    const hy_bot=cubic(t,by0,by1,by2,by3);
+    const fo=fade(t,p.fadeIn/100,p.fadeOut/100);
+    const op=(fo*0.28).toFixed(2);
+    hairs+=`<line x1="${hx.toFixed(1)}" y1="${(hy_top-0.5).toFixed(1)}" x2="${hx.toFixed(1)}" y2="${(hy_bot+0.5).toFixed(1)}" stroke="${hairC}" stroke-width="0.7" opacity="${op}"/>`;
+  }
+
+  // contentのみ返す。viewBoxは呼び出し側で固定管理する
+  const content=`<defs><linearGradient id="${gid}" x1="0%" y1="0%" x2="100%" y2="0%">
+    <stop offset="0%"   stop-color="${lightC}" stop-opacity="${fiOp}"/>
+    <stop offset="30%"  stop-color="${midC}"   stop-opacity="0.93"/>
+    <stop offset="70%"  stop-color="${midC}"   stop-opacity="0.93"/>
+    <stop offset="100%" stop-color="${lightC}" stop-opacity="${foOp}"/>
+  </linearGradient></defs>
+  <path d="${top} ${bot}" fill="url(#${gid})"/>
+  <path d="${top}" stroke="${midC}" stroke-width="0.4" fill="none" opacity="0.35"/>
+  ${hairs}`;
+  return content;
+}
+function cubic(t,p0,p1,p2,p3){const u=1-t;return u*u*u*p0+3*u*u*t*p1+3*u*t*t*p2+t*t*t*p3;}
+function fade(t,fi,fo){if(fi>0&&t<fi)return t/fi;if(fo>0&&t>1-fo)return(1-t)/fo;return 1;}
+
+// viewBoxは固定（160x40）。長さが変わってもスケールは変わらない
+// overflow:visibleで眉尻がはみ出してもクリップしない
+const VBW=160, VBH=40;
+
+
+// ============================================================
+// PHOTO PREVIEW
+// ============================================================
+
+
+
+
+// ガイド表示
+let photoTransform = {x:0, y:0, scale:1}; // アップ時の写真変形状態
+
+
+// ガイドを描画（固定比率）
+
+// 写真をドラッグ・ピンチで動かす（アップ時）
+
+
+// ガイド確認後 → 眉の初期位置を計算して試着へ
+
+// ============================================================
+// MASK SYSTEM（眉隠しマスク）
+// ============================================================
+const SKIN_COLORS = [
+  {id:'s1', name:'ライト',    rgb:[255,224,196]},
+  {id:'s2', name:'ナチュラル',rgb:[240,200,168]},
+  {id:'s3', name:'ベージュ',  rgb:[220,175,140]},
+  {id:'s4', name:'ミディアム',rgb:[190,140,105]},
+  {id:'s5', name:'ダーク',    rgb:[150,100,70]},
+];
+
+
+// maskAdj declared in photo section
+
+
+function initSkinPalette(){
+  const el = document.getElementById('skin-palette');
+  el.innerHTML = SKIN_COLORS.map((c,i)=>
+    `<div class="skin-swatch ${i===1?'active':''}" id="swatch-${c.id}"
+      style="background:rgb(${c.rgb.join(',')})"
+      onclick="selSkin('${c.id}')" title="${c.name}"></div>`
+  ).join('');
+}
+
+function selSkin(id){
+  maskSkin = SKIN_COLORS.find(c=>c.id===id)||SKIN_COLORS[1];
+  document.querySelectorAll('.skin-swatch').forEach(el=>el.classList.remove('active'));
+  document.getElementById('swatch-'+id).classList.add('active');
+  drawMasks();
+}
+
+function toggleMask(){
+  maskOn = !maskOn;
+  const btn  = document.getElementById('mask-toggle');
+  const body = document.getElementById('mask-body');
+  btn.textContent = maskOn ? 'ON' : 'OFF';
+  btn.classList.toggle('on', maskOn);
+  body.style.display = maskOn ? 'block' : 'none';
+  document.getElementById('mask-L').style.display = maskOn ? 'block' : 'none';
+  document.getElementById('mask-R').style.display = maskOn ? 'block' : 'none';
+  if(maskOn) drawMasks();
+}
+
+function updMask(key, val){
+  maskAdj[key] = parseFloat(val);
+  const labels = {br:'v-mbr', op:'v-mop', bl:'v-mbl', sz:'v-msz'};
+  const fmts = {
+    br: v=>(v>=0?'+':'')+Math.round(v),
+    op: v=>Math.round(v)+'%',
+    bl: v=>Math.round(v),
+    sz: v=>Math.round(v)+'px',
+  };
+  document.getElementById(labels[key]).textContent = fmts[key](parseFloat(val));
+  if(key === 'sz'){
+    ['mask-L','mask-R'].forEach(id=>{
+      document.getElementById(id).style.width  = val+'px';
+      document.getElementById(id).style.height = Math.round(val*0.28)+'px';
+    });
+  }
+  drawMasks();
+}
+
+function drawMasks(){
+  if(!maskOn) return;
+  ['mask-L','mask-R'].forEach(id => drawMaskCanvas(id));
+}
+
+function drawMaskCanvas(id){
+  const canvas = document.getElementById(id);
+  const W = maskAdj.sz;
+  const H = Math.round(maskAdj.sz * 0.28);
+  canvas.width  = W * 2; // retina
+  canvas.height = H * 2;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(2, 2);
+  ctx.clearRect(0, 0, W, H);
+
+  const br = maskAdj.br;
+  const [r,g,b] = maskSkin.rgb.map(v => Math.max(0, Math.min(255, v + br)));
+  const blur = maskAdj.bl;
+  const op   = maskAdj.op / 100;
+
+  const cx = W / 2, cy = H / 2;
+  const rx = W / 2, ry = H / 2;
+
+  // 楕円形グラデーション（エッジをぼかしてフェザー）
+  ctx.save();
+  ctx.scale(1, ry / rx);
+  const grad = ctx.createRadialGradient(cx, cy*(rx/ry), 0, cx, cy*(rx/ry), rx);
+  const featherStart = Math.max(0, 1 - (blur / rx));
+  grad.addColorStop(0,            `rgba(${r},${g},${b},${op})`);
+  grad.addColorStop(featherStart, `rgba(${r},${g},${b},${op})`);
+  grad.addColorStop(1,            `rgba(${r},${g},${b},0)`);
+  ctx.beginPath();
+  ctx.arc(cx, cy*(rx/ry), rx, 0, Math.PI*2);
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.restore();
+}
+
+function initMaskDrag(){
+  ['mask-L','mask-R'].forEach(id => {
+    const el = document.getElementById(id);
+    el.replaceWith(el.cloneNode(true));
+    const fresh = document.getElementById(id);
+    let sx,sy,ox,oy;
+    fresh.addEventListener('touchstart', ev=>{
+      ev.preventDefault();
+      const t = ev.touches[0]; sx=t.clientX; sy=t.clientY;
+      ox=parseInt(fresh.style.left)||0; oy=parseInt(fresh.style.top)||0;
+    },{passive:false});
+    fresh.addEventListener('touchmove', ev=>{
+      ev.preventDefault();
+      const t = ev.touches[0];
+      const nx=ox+t.clientX-sx, ny=oy+t.clientY-sy;
+      fresh.style.left=nx+'px'; fresh.style.top=ny+'px';
+      if(id==='mask-L') baseMaskL={x:nx,y:ny}; else baseMaskR={x:nx,y:ny};
+    },{passive:false});
+    fresh.addEventListener('mousedown', ev=>{
+      sx=ev.clientX; sy=ev.clientY;
+      ox=parseInt(fresh.style.left)||0; oy=parseInt(fresh.style.top)||0;
+      const mv=e=>{
+        const nx=ox+e.clientX-sx, ny=oy+e.clientY-sy;
+        fresh.style.left=nx+'px'; fresh.style.top=ny+'px';
+        if(id==='mask-L') baseMaskL={x:nx,y:ny}; else baseMaskR={x:nx,y:ny};
+      };
+      const up=()=>{ document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); };
+      document.addEventListener('mousemove',mv);
+      document.addEventListener('mouseup',up);
+    });
+  });
+}
+
+// ============================================================
+// EXPORT
+// ============================================================
+
+// ダウンロード（iOS対応）
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  // iOSはaタグclickが効かないので新タブで開く
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if(isIOS){
+    // 新タブで画像を開く → 長押しで保存
+    const tab = window.open(url, '_blank');
+    if(!tab){
+      // ポップアップブロックされた場合はプレビューモーダル
+      showExportPreview(url, filename);
+    }
+  } else {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  }
+}
+
+// iOSでポップアップブロック時のフォールバック
+function showExportPreview(url, filename){
+  const overlay = document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML=`
+    <p style="color:#f0e0c8;font-size:13px;margin-bottom:16px;text-align:center;font-family:'M PLUS Rounded 1c',sans-serif">画像を長押しして保存してください</p>
+    <img src="${url}" style="max-width:100%;max-height:70dvh;border-radius:8px;display:block;">
+    <button onclick="this.parentElement.remove();URL.revokeObjectURL('${url}')" style="margin-top:20px;background:transparent;border:1px solid rgba(240,224,200,0.4);color:#f0e0c8;font-size:13px;padding:10px 28px;border-radius:20px;cursor:pointer;">閉じる</button>
+  `;
+  document.body.appendChild(overlay);
+}
+
+// object-fit:contain のレターボックスを除いた実際の写真コンテンツ領域を返す
+function getContentRect(img){
+  const ew=img.offsetWidth, eh=img.offsetHeight;
+  const nw=img.naturalWidth, nh=img.naturalHeight;
+  if(!nw||!nh) return {left:0,top:0,width:ew,height:eh};
+  if(nw/nh>ew/eh){
+    // 横長写真 → 幅に制約、上下に余白
+    const ch=ew*nh/nw;
+    return {left:0,top:(eh-ch)/2,width:ew,height:ch};
+  } else {
+    // 縦長写真 → 高さに制約、左右に余白
+    const cw=eh*nw/nh;
+    return {left:(ew-cw)/2,top:0,width:cw,height:eh};
+  }
+}
+
+// 写真 + 眉オーバーレイを合成してPNG保存
+function exportComposite(){
+  const img=document.getElementById('preview-photo');
+  const ovL=document.getElementById('ov-L');
+  const ovR=document.getElementById('ov-R');
+  const cr=getContentRect(img);
+  const W=img.naturalWidth, H=img.naturalHeight;
+  const sc=W/cr.width;
+  const canvas=document.createElement('canvas');
+  canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext('2d');
+  ctx.drawImage(img,0,0,W,H);
+  if(maskOn){
+    ['mask-L','mask-R'].forEach(id=>{
+      const m=document.getElementById(id);
+      const ml=parseInt(m.style.left)||0, mt=parseInt(m.style.top)||0;
+      const mw=parseInt(m.style.width)||maskAdj.sz;
+      const mh=parseInt(m.style.height)||Math.round(maskAdj.sz*0.28);
+      ctx.drawImage(m,(ml-cr.left)*sc,(mt-cr.top)*sc,mw*sc,mh*sc);
+    });
+  }
+  const p=getMergedParams();
+  const angDeg=p.angle, scX=p.length/100, scY=p.thickness/100;
+  const drawOvImg=(ov,flipped)=>new Promise(resolve=>{
+    const l=parseInt(ov.style.left)||0, t=parseInt(ov.style.top)||0;
+    const w=ov.offsetWidth||110;
+    const h=ov.offsetHeight||Math.round(w*0.294);
+    const op=parseFloat(ov.style.opacity||1);
+    const imgEl=ov.querySelector('img');
+    if(!imgEl||!imgEl.complete){resolve();return;}
+    const deg=(flipped?-angDeg:angDeg)*Math.PI/180;
+    const cx=(l+w/2-cr.left)*sc, cy=(t+h/2-cr.top)*sc;
+    ctx.save();
+    ctx.globalAlpha=op;
+    ctx.translate(cx,cy);
+    ctx.rotate(deg);
+    ctx.scale(flipped?-scX:scX, scY);
+    ctx.drawImage(imgEl,-w/2*sc,-h/2*sc,w*sc,h*sc);
+    ctx.restore();
+    resolve();
+  });
+  Promise.all([drawOvImg(ovL,false),drawOvImg(ovR,true)]).then(()=>{
+    canvas.toBlob(blob=>downloadBlob(blob,'soi-moi-vrai-etre.png'),'image/png');
+  });
+}
+
+// 眉シルエットのみ（透過PNG）で保存
+function exportBrowOnly(){
+  const W = 800, H = 220;
+  const canvas = document.createElement('canvas');
+  canvas.width  = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // 透過背景（何も描かない）
+  const merged = getMergedParams();
+  const midC   = adjHex(currentColor.mid);
+  const lightC = adjHex(currentColor.light);
+  const hairC  = adjHex(currentColor.hair);
+  const content = genEyebrow(merged, 148, 40, midC, lightC, hairC);
+
+  // 左眉SVG
+  const svgL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VBW} ${VBH}" width="${W/2}" height="${H}">${content}</svg>`;
+  // 右眉SVG（反転）
+  const svgR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VBW} ${VBH}" width="${W/2}" height="${H}"><g transform="translate(${VBW},0) scale(-1,1)">${content}</g></svg>`;
+
+  const drawSVG = (svgStr, dx) => new Promise(resolve => {
+    const blob = new Blob([svgStr], {type:'image/svg+xml'});
+    const url  = URL.createObjectURL(blob);
+    const i    = new Image();
+    i.onload = () => {
+      ctx.drawImage(i, dx, 0, W/2, H);
+      URL.revokeObjectURL(url);
+      resolve();
+    };
+    i.src = url;
+  });
+
+  Promise.all([
+    drawSVG(svgL, 0),
+    drawSVG(svgR, W/2),
+  ]).then(()=>{
+    canvas.toBlob(blob=>{
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'soi-moi-brow.png';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }, 'image/png');
+  });
+}
+
+// ============================================================
+// INIT
+// ============================================================
+
+;
+
+
+function render(){
+  const {br,rd,sa}=colorAdj;
+  const brightness=1+br/100;
+  const sepia=sa<0?Math.abs(sa)/100*0.3:0;
+  const hueRot=rd*3;
+  const saturate=1+sa/200;
+  const f=`brightness(${brightness.toFixed(2)}) saturate(${saturate.toFixed(2)}) hue-rotate(${hueRot}deg) sepia(${sepia.toFixed(2)})`;
+  ['brow-img-L','brow-img-R','brow-prev-L','brow-prev-R'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.filter=f;
+  });
+  applyBrowStyle();
+}
+
+function applyBrowStyle(){
+  const p=getMergedParams();
+  const scX=(p.length/100).toFixed(3);
+  const scY=(p.thickness/100).toFixed(3);
+  const ang=p.angle;
+  const archDeg=(p.arch/100*8).toFixed(1);
+  const fiOp=Math.min(p.fadeIn/100*1.1,0.95).toFixed(2);
+  const foOp=Math.min(p.fadeOut/100*1.05,0.88).toFixed(2);
+
+  const ovL=document.getElementById('ov-L'), ovR=document.getElementById('ov-R');
+  const imgL=document.getElementById('brow-img-L'), imgR=document.getElementById('brow-img-R');
+
+  if(ovL) ovL.style.transform=`rotate(${ang}deg)`;
+  if(imgL){
+    imgL.style.transform=`scaleX(${scX}) scaleY(${scY}) perspective(400px) rotateX(-${archDeg}deg)`;
+    const m=`linear-gradient(to right,rgba(0,0,0,${fiOp}) 0%,rgba(0,0,0,.95) 18%,rgba(0,0,0,.95) 82%,rgba(0,0,0,${foOp}) 100%)`;
+    imgL.style.webkitMaskImage=m; imgL.style.maskImage=m;
+  }
+  if(ovR) ovR.style.transform=`rotate(${-ang}deg)`;
+  if(imgR){
+    imgR.style.transform=`scaleX(-${scX}) scaleY(${scY}) perspective(400px) rotateX(-${archDeg}deg)`;
+    const m=`linear-gradient(to right,rgba(0,0,0,${foOp}) 0%,rgba(0,0,0,.95) 18%,rgba(0,0,0,.95) 82%,rgba(0,0,0,${fiOp}) 100%)`;
+    imgR.style.webkitMaskImage=m; imgR.style.maskImage=m;
+  }
+}
+
+// ============================================================
+// BROW PNG IMAGES
+// ============================================================
+const BROW_IMAGES = {
+  A: ['m1.png','m2.png','m3.png'],
+  B: ['m4.png','m5.png','m6.png'],
+  C: ['m7.png','m8.png','m9.png'],
+};
+let currentVariant = 0;
+
+function updateBrowImages(){
+  const src=(BROW_IMAGES[currentSlot]||BROW_IMAGES['A'])[currentVariant]||'m1.png';
+  ['brow-img-L','brow-img-R','brow-prev-L','brow-prev-R'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.src=src;
+  });
+}
+
+function selectVariant(v){
+  currentVariant=v;
+  document.querySelectorAll('.var-btn').forEach((b,i)=>b.classList.toggle('active',i===v));
+  updateBrowImages();
+}
+
+// ============================================================
+// PHOTO & GUIDE
+// ============================================================
+let baseL={x:0,y:0}, baseR={x:0,y:0}, vyOffset=0;
+let centerL=0, centerR=0;
+let maskAdj={br:0, op:85, bl:8, sz:140};
+let maskOn=false;
+let maskSkin=null;
+let baseMaskL={x:0,y:0}, baseMaskR={x:0,y:0};
+let photoMode='upload'; // 'upload' | 'camera'
+let ptx={x:0,y:0,scale:1}; // 写真ドラッグ状態
+
+// 眉Y推定: eyeY - faceH * この値（landmark検出失敗時のフォールバック）
+const BROW_EYE_OFFSET_RATIO = 0.10;
+
+// face-api 状態
+// auto: landmark由来の自動計算値（検出成功時のみセット）
+// delta: ユーザーが手動で加えた補正（drag等）
+let faceState = {
+  auto: null,   // { browYL, browYR, eyeY, faceW, cx } | null
+  modelReady: false,
+};
+
+function showLandmarkStatus(state){
+  const el=document.getElementById('landmark-status');
+  if(!el) return;
+  const map={
+    detecting: {text:'顔を検出中…', bg:'rgba(80,140,220,0.15)', color:'rgba(80,140,220,0.9)'},
+    ok:        {text:'✓ 自動位置合わせ完了', bg:'rgba(80,180,100,0.15)', color:'rgba(80,180,100,0.9)'},
+    fallback:  {text:'手動で位置を調整してください', bg:'rgba(196,132,74,0.12)', color:'rgba(196,132,74,0.85)'},
+  };
+  const s=map[state]||map.fallback;
+  el.textContent=s.text;
+  el.style.background=s.bg;
+  el.style.color=s.color;
+  el.style.display='block';
+  if(state==='ok'||state==='fallback'){
+    setTimeout(()=>{ el.style.display='none'; }, 3000);
+  }
+}
+
+async function initFaceApi(){
+  if(faceState.modelReady) return;
+  try {
+    await faceapi.nets.tinyFaceDetector.loadFromUri('./models');
+    await faceapi.nets.faceLandmark68TinyNet.loadFromUri('./models');
+    faceState.modelReady = true;
+  } catch(e){
+    console.warn('[face-api] model load failed:', e);
+  }
+}
+
+// confirmGuide 後に呼ぶ: 表示中の写真に対して landmark を検出し
+// 眉・目の座標を faceState.auto にセット → setOv / setMaskOv を更新する
+async function runLandmarkUpdate(guideState){
+  if(!faceState.modelReady) return false;
+  const img = document.getElementById('preview-photo');
+  let det;
+  try {
+    det = await faceapi
+      .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({inputSize:320, scoreThreshold:0.4}))
+      .withFaceLandmarks(true);
+  } catch(e){
+    console.warn('[face-api] detection error:', e);
+    return false;
+  }
+  if(!det) return false;
+
+  const pts = det.landmarks.positions; // 68点 (face-api.js Point[])
+  const nw = img.naturalWidth, nh = img.naturalHeight;
+  const cr = getContentRect(img);
+  // natural→display 変換スケール
+  const toDispX = x => x / nw * cr.width  + cr.left;
+  const toDispY = y => y / nh * cr.height + cr.top;
+
+  // 右眉(向かって左) pts[17-21], 左眉(向かって右) pts[22-26]
+  // 右目 pts[36-41], 左目 pts[42-47]
+  const browL_pts = pts.slice(17, 22); // ユーザーの右眉=画面左
+  const browR_pts = pts.slice(22, 27); // ユーザーの左眉=画面右
+  const eyeL_pts  = pts.slice(36, 42);
+  const eyeR_pts  = pts.slice(42, 48);
+
+  const avgY = arr => arr.reduce((s,p)=>s+p.y,0)/arr.length;
+  const avgX = arr => arr.reduce((s,p)=>s+p.x,0)/arr.length;
+
+  // display座標
+  const browYL = toDispY(avgY(browL_pts));
+  const browYR = toDispY(avgY(browR_pts));
+  const eyeCxL = toDispX(avgX(eyeL_pts));
+  const eyeCxR = toDispX(avgX(eyeR_pts));
+  const browXL = toDispX(avgX(browL_pts)); // 眉の中心X（初期位置補正用）
+  const browXR = toDispX(avgX(browR_pts));
+
+  // 眉の幅: 目の間距離 × 0.30 に合わせる（guideStateの値を踏襲）
+  const faceW = guideState.faceW;
+  const cx    = guideState.cx;
+  const browW = Math.round(faceW * 0.30);
+
+  // 眉左端X（画面左眉）= 眉中心 - browW/2
+  const lx = Math.round(browXL - browW/2);
+  const rx = Math.round(browXR - browW/2);
+  const browTopL = Math.round(browYL - browW*0.1875);
+  const browTopR = Math.round(browYR - browW*0.1875);
+
+  // マスク位置
+  const mSz = maskAdj.sz, mH = Math.round(mSz*0.28);
+  const mlx = Math.round(browXL - mSz/2);
+  const mrx = Math.round(browXR - mSz/2);
+  const mly = Math.round((browYL+browYR)/2 - mH/2); // Y は両眉平均
+  const mry = mly;
+
+  faceState.auto = { browYL, browYR, browXL, browXR, lx, rx, browTopL, browTopR,
+                     mlx, mrx, mly, mry, browW };
+
+  // オーバーレイ位置を landmark 値で上書き
+  setOv('ov-L', lx, browTopL, browW);
+  setOv('ov-R', rx, browTopR, browW);
+  baseL={x:lx, y:browTopL}; baseR={x:rx, y:browTopR};
+  centerL=lx+browW/2; centerR=rx+browW/2;
+  slot().photoSz=browW;
+  document.getElementById('s-ps').value=browW;
+  document.getElementById('v-ps').textContent=browW+'px';
+
+  // マスク位置を landmark 値で上書き
+  setMaskOv('mask-L', mlx, mly, mSz, mH);
+  setMaskOv('mask-R', mrx, mry, mSz, mH);
+  baseMaskL={x:mlx,y:mly}; baseMaskR={x:mrx,y:mry};
+
+  render();
+  return true;
+}
+
+function loadPhoto(e, mode){
+  const file=e.target.files[0]; if(!file)return;
+  photoMode=mode;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const img=document.getElementById('preview-photo');
+    img.src=ev.target.result;
+    img.onload=()=>{
+      const pf=document.getElementById('preview-fixed');
+      pf.classList.remove('no-photo');
+      document.getElementById('upload-area').style.display='none';
+      document.getElementById('brow-preview-wrap').style.display='none';
+      img.style.display='block';
+      requestAnimationFrame(()=>showGuide(mode));
+    };
+  };
+  r.readAsDataURL(file);
+}
+
+function showGuide(mode){
+  const img=document.getElementById('preview-photo');
+  const w=img.offsetWidth, h=img.offsetHeight;
+  const overlay=document.getElementById('guide-overlay');
+  const canvas =document.getElementById('guide-canvas');
+  overlay.style.display='block';
+  canvas.width =w*2; canvas.height=h*2;
+  canvas.style.width=w+'px'; canvas.style.height=h+'px';
+  drawGuide(canvas,w*2,h*2);
+
+  if(mode==='camera'){
+    document.getElementById('guide-title').textContent='顔をガイドに合わせて撮影しました？';
+    document.getElementById('guide-sub').textContent='目が青いラインに重なっていればOK';
+  } else {
+    document.getElementById('guide-title').textContent='写真をドラッグして顔を合わせてね';
+    document.getElementById('guide-sub').textContent='目が青いラインに重なるよう調整してね';
+    ptx={x:0,y:0,scale:1};
+    initPhotoMove(img);
+  }
+}
+
+function drawGuide(canvas,W,H){
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  const imgEl=document.getElementById('preview-photo');
+  const cr=getContentRect(imgEl);
+  const cxOff=cr.left*2, cyOff=cr.top*2, cW=cr.width*2, cH=cr.height*2;
+  const cx=cxOff+cW*0.5;
+  const faceTopY=cyOff+cH*0.06, faceBotY=cyOff+cH*0.88;
+  const faceH=faceBotY-faceTopY;
+  const faceW=Math.min(cW*0.72, faceH*0.78);
+  const faceCY=(faceTopY+faceBotY)/2;
+  const eyeY=faceTopY+faceH*0.40;
+
+  // 暗幕＋楕円くり抜き
+  ctx.save();
+  ctx.fillStyle='rgba(0,0,0,0.42)';
+  ctx.fillRect(0,0,W,H);
+  ctx.globalCompositeOperation='destination-out';
+  ctx.beginPath();
+  ctx.ellipse(cx,faceCY,faceW/2,faceH/2,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+
+  // 顔楕円（薄い参考線）
+  ctx.strokeStyle='rgba(196,132,74,0.35)';
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.ellipse(cx,faceCY,faceW/2,faceH/2,0,0,Math.PI*2);
+  ctx.stroke();
+
+  // 中心縦線
+  ctx.strokeStyle='rgba(196,132,74,0.25)';
+  ctx.lineWidth=1.5;
+  ctx.setLineDash([6,6]);
+  ctx.beginPath(); ctx.moveTo(cx,faceTopY); ctx.lineTo(cx,faceBotY); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 目の楕円（青・主ターゲット）
+  ctx.strokeStyle='rgba(80,140,220,0.95)';
+  ctx.lineWidth=3;
+  [cx-faceW*0.24, cx+faceW*0.24].forEach(ex=>{
+    ctx.beginPath();
+    ctx.ellipse(ex,eyeY,faceW*0.115,faceH*0.038,0,0,Math.PI*2);
+    ctx.stroke();
+  });
+
+  // 目と目を結ぶ横ライン（角度・高さの基準）
+  ctx.strokeStyle='rgba(80,140,220,0.35)';
+  ctx.lineWidth=1.5;
+  ctx.setLineDash([4,4]);
+  ctx.beginPath();
+  ctx.moveTo(cx-faceW*0.42,eyeY); ctx.lineTo(cx+faceW*0.42,eyeY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 目ラベル
+  const fs=Math.round(W*0.022);
+  ctx.fillStyle='rgba(80,140,220,1)';
+  ctx.font=`${fs}px sans-serif`;
+  ctx.textAlign='left';
+  ctx.fillText('目',cx-faceW*0.42,eyeY-fs*0.4);
+
+}
+
+let photoMoveAbort = null;
+
+function initPhotoMove(img){
+  // 既存のリスナーを解除
+  if(photoMoveAbort) photoMoveAbort.abort();
+  photoMoveAbort = new AbortController();
+  const sig = {signal: photoMoveAbort.signal};
+
+  img.style.cursor='grab';
+  img.style.transformOrigin='center center';
+  let sx,sy,pinchD,pinchS;
+
+  const applyT=()=>{
+    img.style.transform=`translate(${ptx.x}px,${ptx.y}px) scale(${ptx.scale})`;
+  };
+
+  img.addEventListener('touchstart',ev=>{
+    ev.preventDefault();
+    if(ev.touches.length===1){
+      sx=ev.touches[0].clientX-ptx.x;
+      sy=ev.touches[0].clientY-ptx.y;
+    } else {
+      pinchD=Math.hypot(ev.touches[0].clientX-ev.touches[1].clientX,ev.touches[0].clientY-ev.touches[1].clientY);
+      pinchS=ptx.scale;
+    }
+  },{passive:false, signal:photoMoveAbort.signal});
+
+  img.addEventListener('touchmove',ev=>{
+    ev.preventDefault();
+    if(ev.touches.length===1){
+      ptx.x=ev.touches[0].clientX-sx;
+      ptx.y=ev.touches[0].clientY-sy;
+    } else {
+      const d=Math.hypot(ev.touches[0].clientX-ev.touches[1].clientX,ev.touches[0].clientY-ev.touches[1].clientY);
+      ptx.scale=Math.max(0.5,Math.min(4,pinchS*d/pinchD));
+    }
+    applyT();
+  },{passive:false, signal:photoMoveAbort.signal});
+
+  img.addEventListener('mousedown',ev=>{
+    sx=ev.clientX-ptx.x; sy=ev.clientY-ptx.y;
+    img.style.cursor='grabbing';
+    const mv=e=>{ ptx.x=e.clientX-sx; ptx.y=e.clientY-sy; applyT(); };
+    const up=()=>{ img.style.cursor='grab'; document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); };
+    document.addEventListener('mousemove',mv);
+    document.addEventListener('mouseup',up);
+  }, sig);
+
+  img.addEventListener('wheel',ev=>{
+    ev.preventDefault();
+    const delta=ev.deltaY<0?1.1:1/1.1;
+    ptx.scale=Math.max(0.5,Math.min(4,ptx.scale*delta));
+    applyT();
+  },{passive:false,signal:photoMoveAbort.signal});
+}
+
+function confirmGuide(){
+  const canvas=document.getElementById('guide-canvas');
+  const g=canvas._g; if(!g)return;
+  const img=document.getElementById('preview-photo');
+  // ガイド比率をdisplayサイズに変換（canvasはretina 2x）
+  const scale=0.5;
+  let cx=g.cx*scale, eyeY=g.eyeY*scale, faceW=g.faceW*scale, faceH=g.faceH*scale;
+
+  // 写真ドラッグのtransformを逆算（ptxは写真element中心を原点とする変換）
+  if(ptx.scale!==1||ptx.x!==0||ptx.y!==0){
+    const invS=1/ptx.scale;
+    const w2=img.offsetWidth/2, h2=img.offsetHeight/2;
+    cx   =(cx   -ptx.x-w2)*invS+w2;
+    eyeY =(eyeY -ptx.y-h2)*invS+h2;
+    faceW=faceW*invS;
+    faceH=faceH*invS;
+  }
+
+  // 目の位置から眉Y位置を推定（landmark検出失敗時のフォールバック）
+  const browY=Math.round(eyeY - faceH*BROW_EYE_OFFSET_RATIO);
+
+  // 眉の初期幅・位置
+  const browW=Math.round(faceW*0.30);
+  const browTop=Math.round(browY-browW*0.1875);
+  const lx=Math.round(cx-faceW*0.38);
+  const rx=Math.round(cx+faceW*0.06);
+
+  // ガイド非表示・写真タッチイベント解除・transform解除
+  document.getElementById('guide-overlay').style.display='none';
+  if(photoMoveAbort){ photoMoveAbort.abort(); photoMoveAbort=null; }
+  img.style.transform=''; img.style.cursor=''; img.style.touchAction='';
+
+  // 眉オーバーレイ表示
+  document.getElementById('ov-L').style.display='block';
+  document.getElementById('ov-R').style.display='block';
+  document.getElementById('drag-hint').style.display='block';
+
+  setOv('ov-L',lx,browTop,browW);
+  setOv('ov-R',rx,browTop,browW);
+  baseL={x:lx,y:browTop}; baseR={x:rx,y:browTop};
+  centerL=lx+browW/2; centerR=rx+browW/2;
+  vyOffset=0;
+  slot().photoSz=browW; slot().photoVy=0;
+  document.getElementById('s-ps').value=browW;
+  document.getElementById('v-ps').textContent=browW+'px';
+  document.getElementById('s-vy').value=0;
+  document.getElementById('v-vy').textContent='0';
+
+  // マスク初期位置
+  const mSz=maskAdj.sz, mH=Math.round(mSz*0.28);
+  setMaskOv('mask-L',Math.round(cx-faceW*0.42),Math.round(browY-mH/2),mSz,mH);
+  setMaskOv('mask-R',Math.round(cx+faceW*0.06),Math.round(browY-mH/2),mSz,mH);
+  baseMaskL={x:Math.round(cx-faceW*0.42),y:Math.round(browY-mH/2)};
+  baseMaskR={x:Math.round(cx+faceW*0.06),y:Math.round(browY-mH/2)};
+
+  document.getElementById('photo-basic-card').style.display='block';
+  document.getElementById('photo-action-btns').style.display='block';
+  document.getElementById('mask-controls').style.display='block';
+  document.getElementById('photo-extra-controls').style.display='block';
+
+  render(); initDrag(); initMaskDrag();
+
+  // landmark 検出: 成功すれば眉・マスク位置を自動更新、失敗はフォールバック値のまま
+  const guideState = {cx, faceW, faceH, eyeY};
+  showLandmarkStatus('detecting');
+  runLandmarkUpdate(guideState).then(ok=>{
+    showLandmarkStatus(ok ? 'ok' : 'fallback');
+    if(ok) initDrag(); // drag handlers need to be re-bound after setOv
+  });
+}
+
+function resetPhoto(){
+  const pf=document.getElementById('preview-fixed');
+  pf.classList.add('no-photo');
+  document.getElementById('upload-area').style.display='block';
+  document.getElementById('brow-preview-wrap').style.display='flex';
+  document.getElementById('preview-photo').style.display='none';
+  document.getElementById('preview-photo').src='';
+  document.getElementById('photo-input').value='';
+  document.getElementById('camera-input').value='';
+  document.getElementById('guide-overlay').style.display='none';
+  document.getElementById('ov-L').style.display='none';
+  document.getElementById('ov-R').style.display='none';
+  document.getElementById('drag-hint').style.display='none';
+  document.getElementById('photo-basic-card').style.display='none';
+  document.getElementById('photo-action-btns').style.display='none';
+  document.getElementById('mask-controls').style.display='none';
+  document.getElementById('photo-extra-controls').style.display='none';
+  document.getElementById('mask-L').style.display='none';
+  document.getElementById('mask-R').style.display='none';
+  maskOn=false;
+  const mt=document.getElementById('mask-toggle');
+  if(mt){ mt.textContent='OFF'; mt.classList.remove('on'); }
+  const mb=document.getElementById('mask-body');
+  if(mb) mb.style.display='none';
+  ['s-ps','s-po','s-vy'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.value=(id==='s-po'?85:id==='s-ps'?110:0);
+  });
+  ['v-ps','v-po','v-vy'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    if(el) el.textContent=(i===0?'110px':i===1?'85%':'0');
+  });
+  slot().photoSz=110; slot().photoOp=85; slot().photoVy=0;
+}
+
+function setOv(id,l,t,w){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.style.left=l+'px'; el.style.top=t+'px';
+  if(w) el.style.width=w+'px';
+}
+function setMaskOv(id,l,t,w,h){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.style.left=l+'px'; el.style.top=t+'px';
+  el.style.width=w+'px'; el.style.height=h+'px';
+}
+function updPS(v){
+  slot().photoSz=+v;
+  document.getElementById('v-ps').textContent=v+'px';
+  const newW=+v;
+  const elL=document.getElementById('ov-L');
+  const elR=document.getElementById('ov-R');
+  if(!elL)return;
+  elL.style.width=newW+'px'; elL.style.left=(centerL-newW/2)+'px';
+  elR.style.width=newW+'px'; elR.style.left=(centerR-newW/2)+'px';
+  baseL.x=centerL-newW/2; baseR.x=centerR-newW/2;
+}
+function updPO(v){
+  slot().photoOp=+v;
+  document.getElementById('v-po').textContent=v+'%';
+  const op=(v/100).toFixed(2);
+  document.getElementById('ov-L').style.opacity=op;
+  document.getElementById('ov-R').style.opacity=op;
+}
+function updVY(v){
+  slot().photoVy=+v; vyOffset=+v;
+  document.getElementById('v-vy').textContent=(+v>=0?'+':'')+v;
+  document.getElementById('ov-L').style.top=(baseL.y+vyOffset)+'px';
+  document.getElementById('ov-R').style.top=(baseR.y+vyOffset)+'px';
+}
+
+function initDrag(){
+  ['ov-L','ov-R'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.replaceWith(el.cloneNode(true));
+    const fresh=document.getElementById(id);
+    let sx,sy,ox,oy;
+    fresh.addEventListener('touchstart',ev=>{
+      ev.preventDefault();
+      const t=ev.touches[0]; sx=t.clientX; sy=t.clientY;
+      ox=parseInt(fresh.style.left)||0; oy=parseInt(fresh.style.top)||0;
+    },{passive:false});
+    fresh.addEventListener('touchmove',ev=>{
+      ev.preventDefault();
+      const t=ev.touches[0];
+      const nx=ox+t.clientX-sx, ny=oy+t.clientY-sy;
+      fresh.style.left=nx+'px'; fresh.style.top=ny+'px';
+      const w=parseInt(fresh.style.width)||110;
+      if(id==='ov-L'){ baseL={x:nx,y:ny}; centerL=nx+w/2; }
+      else { baseR={x:nx,y:ny}; centerR=nx+w/2; }
+    },{passive:false});
+    fresh.addEventListener('mousedown',ev=>{
+      ev.preventDefault();
+      sx=ev.clientX; sy=ev.clientY;
+      ox=parseInt(fresh.style.left)||0; oy=parseInt(fresh.style.top)||0;
+      const mv=e=>{
+        const nx=ox+e.clientX-sx, ny=oy+e.clientY-sy;
+        fresh.style.left=nx+'px'; fresh.style.top=ny+'px';
+        const w=parseInt(fresh.style.width)||110;
+        if(id==='ov-L'){ baseL={x:nx,y:ny}; centerL=nx+w/2; }
+        else { baseR={x:nx,y:ny}; centerR=nx+w/2; }
+      };
+      const up=()=>{ document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); };
+      document.addEventListener('mousemove',mv);
+      document.addEventListener('mouseup',up);
+    });
+  });
+}
+
+// toggleAdvanced / toggleAllZones
+function toggleAdvanced(){
+  const b=document.getElementById('adv-body');
+  const i=document.getElementById('adv-icon');
+  const open=b.style.display!=='none';
+  b.style.display=open?'none':'block';
+  i.textContent=open?'▾':'▴';
+}
+function toggleAllZones(){
+  const b=document.getElementById('zones-body');
+  const i=document.getElementById('zones-toggle-icon');
+  const open=b.style.display!=='none';
+  b.style.display=open?'none':'block';
+  i.textContent=open?'▾':'▴';
+}
+
+window.addEventListener('DOMContentLoaded', ()=>{
+  initColorPalette();
+  initSkinPalette();
+  updateBrowImages();
+  render();
+  // タッチ非対応デバイス（PC）ではカメラボタンを非表示
+  if(!('ontouchstart' in window)&&!navigator.maxTouchPoints){
+    const cb=document.getElementById('camera-upload-btn');
+    if(cb) cb.style.display='none';
+  }
+  // face-api モデルをバックグラウンドで事前ロード
+  initFaceApi();
+});
+</script>
+</body>
+</html>

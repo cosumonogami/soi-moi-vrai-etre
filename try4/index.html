@@ -74,17 +74,22 @@
   .row { position: relative; display: flex; gap: 8px; overflow-x: auto; padding: 3px 2px; justify-content: safe center; scrollbar-width: none; }
   .row::-webkit-scrollbar { display: none; }
   .chip { flex: none; width: 38px; height: 38px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 1px var(--line); cursor: pointer; padding: 0; }
-  .chip.on { box-shadow: 0 0 0 2.5px var(--accent); }
   .thumb { flex: none; padding: 2px; border: 1px solid var(--line); border-radius: 10px; background: #efd9c4; cursor: pointer; line-height: 0; }
-  .thumb.on { border-color: var(--accent); box-shadow: 0 0 0 1.5px var(--accent); }
   .thumb.draft { border-style: dashed; }
   .chip:active, .thumb:active { transform: scale(.9); }
 
-  /* 選ぶタブの「選んでいる枠」。枠が先に動き、少し遅れて並びが寄ってくる。 */
-  .sel {
-    position: absolute; left: 0; top: 0; pointer-events: none;
-    transition: transform .26s cubic-bezier(.3, .7, .2, 1);
+  /* 横に流して選ぶ並び。枠は中央に固定で、並びのほうが流れる。
+     はみ出した分は画面の端で切れて見える（先にまだあることが分かる）。 */
+  .picker { position: relative; margin: 0 -12px; }
+  .picker .row {
+    justify-content: flex-start; padding: 3px 0;
+    scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
   }
+  .picker .row > * { scroll-snap-align: center; }
+  /* 枠の外の見本は少し薄くする。色の丸は色を見比べるものなので薄くしない。 */
+  .picker .thumb { opacity: .55; }
+  .picker .thumb.cur { opacity: 1; }
+  .sel { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; }
   .sel.for-thumb { border: 2.5px solid var(--accent); border-radius: 11px; }
   .sel.for-chip { border-radius: 50%; box-shadow: 0 0 0 2.5px var(--accent); }
 
@@ -130,10 +135,10 @@
 
   @media (prefers-reduced-motion: reduce) {
     #strip.in, #hint.in { animation: none; }
-    #tab-ind, .seg .pill, .sel { transition: none; }
+    #tab-ind, .seg .pill { transition: none; }
   }
 </style>
-  <script type="module" crossorigin src="./assets/ui-TQgDAK1W.js"></script>
+  <script type="module" crossorigin src="./assets/ui-SawPNxzS.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/geometry-CMKtOjPL.js">
 </head>
 <body>

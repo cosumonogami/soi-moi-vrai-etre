@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>眉シール 調整UIの試作</title>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #f6f1eb;
+    --ink: #2b211b;
+    --muted: #8a7a6d;
+    --line: #e2d8cd;
+    --accent: #c4844a;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; }
+  body {
+    font: 14px/1.5 -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    background: var(--paper); color: var(--ink);
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  }
+  #app { display: flex; flex-direction: column; height: 100dvh; max-width: 760px; margin: 0 auto; }
+
+  #top {
+    display: flex; align-items: center; gap: 6px;
+    padding: calc(8px + env(safe-area-inset-top)) 12px 8px;
+  }
+  #top .spacer { flex: 1; }
+  .btn {
+    font: inherit; font-size: 13px; color: var(--ink);
+    padding: 7px 10px; min-height: 36px; white-space: nowrap;
+    border: 1px solid var(--line); border-radius: 18px; background: #fff; cursor: pointer;
+  }
+  .btn:active { background: #f1e9e0; }
+  .btn[disabled] { opacity: .38; }
+  .btn.round { width: 38px; padding: 0; font-size: 18px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
+
+  #stage { position: relative; flex: 1; min-height: 0; background: #e7dfd6; overflow: hidden; }
+  #cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+
+  #readout {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 6px; pointer-events: none;
+  }
+  #ro-text {
+    min-width: 168px; text-align: center; white-space: nowrap;
+    padding: 8px 16px; border-radius: 20px;
+    background: rgba(30, 24, 20, .78); color: #fff;
+    font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums;
+  }
+  .step {
+    pointer-events: auto; width: 38px; height: 38px; border-radius: 50%; border: 0;
+    background: rgba(30, 24, 20, .78); color: #fff; font: 500 20px/1 -apple-system, sans-serif; cursor: pointer;
+  }
+  .step:active { background: var(--accent); }
+  .step[disabled] { opacity: .3; }
+
+  #toast {
+    position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+    padding: 8px 14px; border-radius: 16px; white-space: nowrap;
+    background: rgba(30, 24, 20, .82); color: #fff; font-size: 13px;
+    opacity: 0; transition: opacity .2s; pointer-events: none;
+  }
+  #toast.on { opacity: 1; }
+
+  #context { padding: 8px 12px 6px; border-top: 1px solid var(--line); background: var(--paper); }
+  #hint { margin: 0; font-size: 12.5px; color: var(--muted); text-align: center; min-height: 19px; }
+  #strip { display: flex; flex-direction: column; gap: 8px; padding: 4px 0 8px; }
+  .row { position: relative; display: flex; gap: 8px; overflow-x: auto; padding: 3px 2px; justify-content: safe center; scrollbar-width: none; }
+  .row::-webkit-scrollbar { display: none; }
+  .chip { flex: none; width: 38px; height: 38px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 1px var(--line); cursor: pointer; padding: 0; }
+  .chip.on { box-shadow: 0 0 0 2.5px var(--accent); }
+  .thumb { flex: none; padding: 2px; border: 1px solid var(--line); border-radius: 10px; background: #efd9c4; cursor: pointer; line-height: 0; }
+  .thumb.on { border-color: var(--accent); box-shadow: 0 0 0 1.5px var(--accent); }
+  .thumb.draft { border-style: dashed; }
+  .thumb canvas { width: 88px; height: 32px; display: block; }
+
+  /* 「整える」の中の切り替え */
+  .seg { display: flex; flex: none; padding: 3px; border-radius: 20px; background: #eadfd3; }
+  .seg button {
+    font: inherit; font-size: 13px; color: var(--muted);
+    min-width: 68px; min-height: 34px; padding: 0 12px;
+    border: 0; border-radius: 17px; background: none; cursor: pointer;
+  }
+  .seg button.on { background: #fff; color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(43, 33, 27, .14); }
+
+  #tabs {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    padding: 0 4px env(safe-area-inset-bottom); background: #fff; border-top: 1px solid var(--line);
+  }
+  .tab {
+    font: inherit; font-size: 14px; color: var(--muted); white-space: nowrap; padding: 0;
+    min-height: 52px; border: 0; background: none; cursor: pointer;
+    border-top: 2.5px solid transparent; margin-top: -1px;
+  }
+  .tab.on { color: var(--ink); font-weight: 600; border-top-color: var(--accent); }
+</style>
+  <script type="module" crossorigin src="./assets/ui-DiUxA6bw.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/geometry-CMKtOjPL.js">
+</head>
+<body>
+<div id="app">
+  <header id="top">
+    <button class="btn" id="btn-photo">写真を使う</button>
+    <button class="btn round" id="zoom-out" aria-label="写真を縮小">−</button>
+    <button class="btn round" id="zoom-in" aria-label="写真を拡大">＋</button>
+    <span class="spacer"></span>
+    <button class="btn" id="btn-reset">リセット</button>
+    <button class="btn round" id="btn-undo" aria-label="もどす" title="もどす">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+    </button>
+    <button class="btn round" id="btn-redo" aria-label="すすむ" title="すすむ">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>
+    </button>
+  </header>
+
+  <main id="stage">
+    <canvas id="cv"></canvas>
+    <div id="readout">
+      <button class="step" id="minus" aria-label="1段階下げる">−</button>
+      <span id="ro-text"></span>
+      <button class="step" id="plus" aria-label="1段階上げる">＋</button>
+    </div>
+    <div id="toast"></div>
+  </main>
+
+  <section id="context">
+    <div id="strip"></div>
+    <p id="hint"></p>
+  </section>
+
+  <nav id="tabs">
+    <button class="tab" id="tab-pick">選ぶ</button>
+    <button class="tab" id="tab-fit">合わせる</button>
+    <button class="tab" id="tab-tune">整える</button>
+    <button class="tab" id="tab-cmp">くらべる</button>
+  </nav>
+
+  <input type="file" id="file" accept="image/*" hidden>
+</div>
+</body>
+</html>

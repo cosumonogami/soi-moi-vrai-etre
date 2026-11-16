@@ -34,6 +34,7 @@
   }
   .btn:active { background: #f1e9e0; }
   .btn[disabled] { opacity: .38; }
+  .btn.round { width: 40px; padding: 0; font-size: 18px; line-height: 1; }
 
   #stage { position: relative; flex: 1; min-height: 0; background: #e7dfd6; overflow: hidden; }
   #cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
@@ -84,14 +85,15 @@
   }
   .tab.on { color: var(--ink); font-weight: 600; border-top-color: var(--accent); }
 </style>
-  <script type="module" crossorigin src="./assets/ui-BuG8FQ1f.js"></script>
+  <script type="module" crossorigin src="./assets/ui-CZMFggxJ.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/geometry-CMKtOjPL.js">
 </head>
 <body>
 <div id="app">
   <header id="top">
     <button class="btn" id="btn-photo">写真を使う</button>
-    <button class="btn" id="btn-view">顔全体を見る</button>
+    <button class="btn round" id="zoom-out" aria-label="写真を縮小">−</button>
+    <button class="btn round" id="zoom-in" aria-label="写真を拡大">＋</button>
     <span class="spacer"></span>
     <button class="btn" id="btn-undo">もどす</button>
   </header>

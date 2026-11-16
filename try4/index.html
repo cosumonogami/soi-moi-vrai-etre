@@ -78,14 +78,12 @@
   .thumb.draft { border-style: dashed; }
   .chip:active, .thumb:active { transform: scale(.9); }
 
-  /* 横に流して選ぶ並び。枠は中央に固定で、並びのほうが流れる。
+  /* 横に回して選ぶ並び。枠は中央に固定で、並びのほうが回る。
      はみ出した分は画面の端で切れて見える（先にまだあることが分かる）。 */
   .picker { position: relative; margin: 0 -12px; }
-  .picker .row {
-    justify-content: flex-start; padding: 3px 0;
-    scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
-  }
-  .picker .row > * { scroll-snap-align: center; }
+  .picker .row { display: block; overflow: hidden; padding: 3px 0; touch-action: none; cursor: grab; }
+  .picker .track { position: relative; display: flex; gap: 8px; width: max-content; will-change: transform; }
+  .picker .track > * { flex: none; }
   /* 枠の外の見本は少し薄くする。色の丸は色を見比べるものなので薄くしない。 */
   .picker .thumb { opacity: .55; }
   .picker .thumb.cur { opacity: 1; }
@@ -143,7 +141,7 @@
     #tab-ind, .seg .pill { transition: none; }
   }
 </style>
-  <script type="module" crossorigin src="./assets/ui-D3tjwC8q.js"></script>
+  <script type="module" crossorigin src="./assets/ui-Oxsmgv5m.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/geometry-CMKtOjPL.js">
 </head>
 <body>

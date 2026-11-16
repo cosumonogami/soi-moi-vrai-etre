@@ -80,6 +80,14 @@
   .thumb.draft { border-style: dashed; }
   .chip:active, .thumb:active { transform: scale(.9); }
 
+  /* 選ぶタブの「選んでいる枠」。枠が先に動き、少し遅れて並びが寄ってくる。 */
+  .sel {
+    position: absolute; left: 0; top: 0; pointer-events: none;
+    transition: transform .26s cubic-bezier(.3, .7, .2, 1);
+  }
+  .sel.for-thumb { border: 2.5px solid var(--accent); border-radius: 11px; }
+  .sel.for-chip { border-radius: 50%; box-shadow: 0 0 0 2.5px var(--accent); }
+
   /* タブを替えたとき、下の中身を少し下から浮かび上がらせる。 */
   @keyframes ctx-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
   #strip.in, #hint.in { animation: ctx-in .24s cubic-bezier(.2, .7, .2, 1) both; }
@@ -122,10 +130,10 @@
 
   @media (prefers-reduced-motion: reduce) {
     #strip.in, #hint.in { animation: none; }
-    #tab-ind, .seg .pill { transition: none; }
+    #tab-ind, .seg .pill, .sel { transition: none; }
   }
 </style>
-  <script type="module" crossorigin src="./assets/ui-8lezb09O.js"></script>
+  <script type="module" crossorigin src="./assets/ui-TQgDAK1W.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/geometry-CMKtOjPL.js">
 </head>
 <body>
